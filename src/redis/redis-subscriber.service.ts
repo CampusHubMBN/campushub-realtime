@@ -25,11 +25,18 @@ export class RedisSubscriberService implements OnModuleInit, OnModuleDestroy {
   ) {}
  
   async onModuleInit() {
-    this.subscriber = new Redis({
-      host: this.config.get<string>('redis.host'),
-      port: this.config.get<number>('redis.port'),
-      retryStrategy: (t) => Math.min(t * 100, 3000),
-    });
+    const host = this.config.get<string>('redis.host');
+    const port = this.config.get<number>('redis.port');
+    
+    this.logger.log(`Connecting to Redis at ${host}:${port}`); 
+
+    this.subscriber = new Redis({ host, port,  retryStrategy: (t) => Math.min(t * 100, 3000), });
+
+    // this.subscriber = new Redis({
+    //   host: this.config.get<string>('redis.host'),
+    //   port: this.config.get<number>('redis.port'),
+    //   retryStrategy: (t) => Math.min(t * 100, 3000),
+    // });
  
     this.subscriber.on('error', (err) =>
       this.logger.error('Redis subscriber error', err),
@@ -38,6 +45,7 @@ export class RedisSubscriberService implements OnModuleInit, OnModuleDestroy {
     await this.subscriber.subscribe(...Object.values(LARAVEL_CHANNELS));
  
     this.subscriber.on('message', (channel: string, raw: string) => {
+      this.logger.error(`RAW MESSAGE RECEIVED: ${channel} → ${raw}`);
       try {
         const { type, payload } = JSON.parse(raw);
         this.logger.debug(`[Redis] ${channel} → ${type}`);

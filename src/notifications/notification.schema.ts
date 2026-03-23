@@ -12,7 +12,7 @@ export class NotificationMongo {
   @Prop({ required: true })                type:      string;
   @Prop({ type: Object, required: true })  data:      Record<string, any>;
   @Prop({ default: false, index: true })   read:      boolean;
-  @Prop({ default: null })                 readAt:    Date | null;
+  @Prop({ type: Date, default: null })                 readAt:    Date | null;
   @Prop({ index: { expireAfterSeconds: 0 } }) expiresAt: Date;
 }
  

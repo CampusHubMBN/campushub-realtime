@@ -1,0 +1,71 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+input MarkReadInput {
+  ids: [String!]
+}
+
+type Mutation {
+  heartbeat: Boolean!
+
+  """Marquer des notifications comme lues. ids=null → tout marquer."""
+  markNotificationsRead(input: MarkReadInput!): Int!
+  setOffline: Boolean!
+  setOnline: Boolean!
+}
+
+type Notification {
+  createdAt: DateTime!
+  data: NotificationData!
+  id: ID!
+  read: Boolean!
+  readAt: DateTime
+  type: String!
+  userId: String!
+}
+
+type NotificationData {
+  actorId: String
+  actorName: String
+  message: String!
+  resourceId: String
+  resourceTitle: String
+  resourceType: String
+}
+
+type NotificationsPage {
+  notifications: [Notification!]!
+  total: Float!
+  unreadCount: Float!
+}
+
+type PresenceUpdate {
+  lastSeenAt: DateTime
+  status: String!
+  userId: String!
+}
+
+type Query {
+  isUserOnline(userId: String!): Boolean!
+  myNotifications(page: Int! = 1, unreadOnly: Boolean! = false): NotificationsPage!
+  onlineUsers: [String!]!
+  unreadCount: Int!
+}
+
+type Subscription {
+  adminNotification: String!
+  notificationAdded: Notification!
+  presenceUpdated: PresenceUpdate!
+  unreadCountUpdated: UnreadCountUpdate!
+}
+
+type UnreadCountUpdate {
+  count: Float!
+  userId: String!
+}
