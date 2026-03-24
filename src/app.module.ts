@@ -35,10 +35,13 @@ import { PresenceModule } from './presence/presence.module';
           'graphql-ws': {
             path: '/graphql',
             onConnect: async (context: any) => {
-              // Passer les cookies au context pour l'auth
               const { connectionParams, extra } = context;
-              extra.cookies = connectionParams?.cookies || {};
-              extra.headers = connectionParams?.headers || {};
+              // Prefer cookie from the HTTP upgrade request headers (includes HttpOnly cookies)
+              // Fallback to connectionParams for non-proxied setups
+              extra.cookieHeader =
+                extra?.request?.headers?.cookie ||
+                connectionParams?.cookie ||
+                '';
             },
           },
         },
@@ -46,8 +49,7 @@ import { PresenceModule } from './presence/presence.module';
         context: ({ req, res, extra }: { req: any, res: any, extra?: any }) => ({
           req,
           res,
-          // Pour les subscriptions WebSocket
-          ...(extra && { headers: extra.headers, cookies: extra.cookies }),
+          ...(extra && { cookieHeader: extra.cookieHeader }),
         }),
       }),
       inject: [ConfigService],
