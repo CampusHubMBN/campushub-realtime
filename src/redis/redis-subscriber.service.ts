@@ -45,10 +45,22 @@ export class RedisSubscriberService implements OnModuleInit, OnModuleDestroy {
     await this.subscriber.subscribe(...Object.values(LARAVEL_CHANNELS));
  
     this.subscriber.on('message', (channel: string, raw: string) => {
-      this.logger.error(`RAW MESSAGE RECEIVED: ${channel} → ${raw}`);
+      // this.logger.error(`RAW MESSAGE RECEIVED: ${channel} → ${raw}`);
       try {
         const { type, payload } = JSON.parse(raw);
         this.logger.debug(`[Redis] ${channel} → ${type}`);
+        //  switch (type) {
+        //   case 'application.created':
+        //   case 'application.status_updated':
+        //   case 'message.created':
+        //   case 'event.published':
+        //     // → Sauvegarder en MongoDB + publier la GraphQL subscription
+        //     this.emitter.emit(`redis.${channel}.${type}`, payload);
+        //     break;
+
+        //   default:
+        //     this.logger.warn(`Unknown event type: ${type}`);
+        // }
         // Émettre un event interne NestJS : "redis.campushub:notifications.comment.created"
         this.emitter.emit(`redis.${channel}.${type}`, payload);
       } catch {

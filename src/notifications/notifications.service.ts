@@ -24,7 +24,8 @@ export class NotificationsService {
  
   // ── Persistance ──────────────────────────────────────────────────
  
-  private async persist(userId: string, type: string, data: Record<string, any>): Promise<NotificationDocument> {
+  private async persist(userId: string, type: string, data: Record<string, any>): 
+  Promise<NotificationDocument> {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 30);
  
@@ -101,6 +102,7 @@ export class NotificationsService {
     await this.pushToUser(payload.postOwnerId, notif);
   }
  
+  @OnEvent(`redis.${LARAVEL_CHANNELS.NOTIFICATIONS}.application.status_updated`)
   @OnEvent(`redis.${LARAVEL_CHANNELS.NOTIFICATIONS}.application.updated`)
   async onApplicationUpdated(payload: {
     applicationId: string; jobTitle: string;
@@ -136,12 +138,78 @@ export class NotificationsService {
     });
   }
  
+  @OnEvent(`redis.${LARAVEL_CHANNELS.NOTIFICATIONS}.event.published`)
+  async onEventPublished(payload: {
+    eventId: string; title: string; body: string;
+    location: string; startDate: string; organizerName: string; eventType: string;
+  }) {
+    // Broadcast to all users (no userId → admin notification channel for now)
+    // In a full implementation we'd query all eligible users from MySQL.
+    // For now we push an admin notification so subscribed clients can refetch events.
+    await this.pubSub.publish('adminNotification', {
+      adminNotification: {
+        type:      'event.published',
+        message:   payload.title,
+        data:      payload,
+        createdAt: new Date().toISOString(),
+      },
+    });
+  }
+
+  @OnEvent(`redis.${LARAVEL_CHANNELS.NOTIFICATIONS}.event.attendance.confirmed`)
+  async onEventAttendanceConfirmed(payload: {
+    eventId: string; eventTitle: string;
+    userId: string; startDate: string; location: string;
+  }) {
+    const notif = await this.persist(payload.userId, 'event.attendance.confirmed', {
+      resourceId:    payload.eventId,
+      resourceType:  'event',
+      resourceTitle: payload.eventTitle,
+      message:       `Votre inscription à "${payload.eventTitle}" a été confirmée ! Rendez-vous le ${new Date(payload.startDate).toLocaleDateString('fr-FR')} à ${payload.location}.`,
+    });
+    await this.pushToUser(payload.userId, notif);
+  }
+
+  @OnEvent(`redis.${LARAVEL_CHANNELS.NOTIFICATIONS}.event.reminder`)
+  async onEventReminder(payload: {
+    eventId: string; eventTitle: string;
+    userId: string; startDate: string; location: string;
+  }) {
+    const notif = await this.persist(payload.userId, 'event.reminder', {
+      resourceId:    payload.eventId,
+      resourceType:  'event',
+      resourceTitle: payload.eventTitle,
+      message:       `Rappel : "${payload.eventTitle}" commence demain à ${payload.location} !`,
+    });
+    await this.pushToUser(payload.userId, notif);
+  }
+
   @OnEvent(`redis.${LARAVEL_CHANNELS.NOTIFICATIONS}.user.suspended`)
   async onUserSuspended(payload: { userId: string }) {
     // Forcer la déconnexion via subscription
     await this.pubSub.publish(`account.suspended.${payload.userId}`, {
       accountSuspended: { message: 'Votre compte a été suspendu.' },
     });
+  }
+
+  @OnEvent(`redis.${LARAVEL_CHANNELS.NOTIFICATIONS}.application.created`)
+  async onApplicationCreated(payload: {
+    applicationId: string;
+    applicantId:   string;
+    jobId:         string;
+    jobTitle:      string;
+    companyName:   string;
+  }) {
+    const notif = await this.persist(payload.applicantId, 'application.created', {
+      resourceId:    payload.applicationId,
+      resourceType:  'application',
+      resourceTitle: payload.jobTitle,
+      message:       `Votre candidature pour "${payload.jobTitle}" chez ${payload.companyName} a bien été envoyée.`,
+      jobId:         payload.jobId,
+      companyName:   payload.companyName,
+    });
+
+    await this.pushToUser(payload.applicantId, notif);
   }
  
   // ── Queries ───────────────────────────────────────────────────────
