@@ -25,4 +25,6 @@ export default () => ({
   session: {
     cookieName: process.env.SESSION_COOKIE_NAME || 'campushub_session',
   },
+
+  backendUrl: process.env.BACKEND_URL || 'http://localhost:8000',
 });

@@ -13,6 +13,7 @@ import configuration from './config/configuration';
 import { RedisModule } from './redis/redis.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { PresenceModule } from './presence/presence.module';
+import { CvMatchingModule } from './cv-matching/cv-matching.module';
  
 @Module({
   imports: [
@@ -84,6 +85,7 @@ import { PresenceModule } from './presence/presence.module';
     RedisModule,
     NotificationsModule,
     PresenceModule,
+    CvMatchingModule,
   ],
 })
 export class AppModule {}

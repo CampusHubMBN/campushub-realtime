@@ -192,6 +192,41 @@ export class NotificationsService {
     });
   }
 
+  @OnEvent(`redis.${LARAVEL_CHANNELS.NOTIFICATIONS}.event.updated`)
+  async onEventUpdated(payload: {
+    eventId: string; eventTitle: string;
+    location: string; startDate: string;
+    attendeeIds: string[];
+  }) {
+    for (const userId of payload.attendeeIds) {
+      const notif = await this.persist(userId, 'event.updated', {
+        resourceId:    payload.eventId,
+        resourceType:  'event',
+        resourceTitle: payload.eventTitle,
+        message:       `L'événement "${payload.eventTitle}" a été modifié — vérifiez les nouvelles informations.`,
+        location:      payload.location,
+        startDate:     payload.startDate,
+      });
+      await this.pushToUser(userId, notif);
+    }
+  }
+
+  @OnEvent(`redis.${LARAVEL_CHANNELS.NOTIFICATIONS}.event.cancelled`)
+  async onEventCancelled(payload: {
+    eventId: string; eventTitle: string;
+    attendeeIds: string[];
+  }) {
+    for (const userId of payload.attendeeIds) {
+      const notif = await this.persist(userId, 'event.cancelled', {
+        resourceId:    payload.eventId,
+        resourceType:  'event',
+        resourceTitle: payload.eventTitle,
+        message:       `L'événement "${payload.eventTitle}" a été annulé.`,
+      });
+      await this.pushToUser(userId, notif);
+    }
+  }
+
   @OnEvent(`redis.${LARAVEL_CHANNELS.NOTIFICATIONS}.application.created`)
   async onApplicationCreated(payload: {
     applicationId: string;
