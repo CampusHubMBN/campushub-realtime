@@ -4,23 +4,45 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { InjectModel } from '@nestjs/mongoose';
+import { InjectDataSource } from '@nestjs/typeorm';
 import { Model } from 'mongoose';
+import { DataSource } from 'typeorm';
 import { RedisPubSub } from 'graphql-redis-subscriptions';
 import { REDIS_PUBSUB, SUBSCRIPTION_EVENTS, LARAVEL_CHANNELS } from '../redis/redis.pubsub';
 import { NotificationMongo, NotificationDocument } from './notification.schema';
 import { PresenceService } from '../presence/presence.service';
- 
+
 @Injectable()
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
- 
+
   constructor(
     @InjectModel(NotificationMongo.name)
     private readonly notifModel: Model<NotificationDocument>,
     @Inject(REDIS_PUBSUB)
     private readonly pubSub: RedisPubSub,
     private readonly presenceService: PresenceService,
+    @InjectDataSource()
+    private readonly dataSource: DataSource,
   ) {}
+
+  // ── MySQL helpers ─────────────────────────────────────────────────
+
+  private async getUserIdsByRoles(roles: string[]): Promise<string[]> {
+    const placeholders = roles.map(() => '?').join(', ');
+    const rows: { id: string }[] = await this.dataSource.query(
+      `SELECT id FROM users WHERE role IN (${placeholders}) AND deleted_at IS NULL`,
+      roles,
+    );
+    return rows.map((r) => r.id);
+  }
+
+  private async getAllUserIds(): Promise<string[]> {
+    const rows: { id: string }[] = await this.dataSource.query(
+      `SELECT id FROM users WHERE deleted_at IS NULL`,
+    );
+    return rows.map((r) => r.id);
+  }
  
   // ── Persistance ──────────────────────────────────────────────────
  
@@ -126,16 +148,16 @@ export class NotificationsService {
  
   @OnEvent(`redis.${LARAVEL_CHANNELS.NOTIFICATIONS}.user.registered`)
   async onUserRegistered(payload: { userId: string; userName: string; userRole: string }) {
-    // Notifier les admins — récupérer leurs IDs depuis MySQL
-    // (le service sera étendu avec injection DataSource si besoin)
-    await this.pubSub.publish('adminNotification', {
-      adminNotification: {
-        type:      'user.registered',
+    const adminIds = await this.getUserIdsByRoles(['admin']);
+    for (const adminId of adminIds) {
+      const notif = await this.persist(adminId, 'user.registered', {
+        actorId:   payload.userId,
+        actorName: payload.userName,
         message:   `Nouveau membre : ${payload.userName} (${payload.userRole})`,
-        data:      payload,
-        createdAt: new Date().toISOString(),
-      },
-    });
+        userRole:  payload.userRole,
+      });
+      await this.pushToUser(adminId, notif);
+    }
   }
  
   @OnEvent(`redis.${LARAVEL_CHANNELS.NOTIFICATIONS}.event.published`)
@@ -143,17 +165,59 @@ export class NotificationsService {
     eventId: string; title: string; body: string;
     location: string; startDate: string; organizerName: string; eventType: string;
   }) {
-    // Broadcast to all users (no userId → admin notification channel for now)
-    // In a full implementation we'd query all eligible users from MySQL.
-    // For now we push an admin notification so subscribed clients can refetch events.
-    await this.pubSub.publish('adminNotification', {
-      adminNotification: {
-        type:      'event.published',
-        message:   payload.title,
-        data:      payload,
-        createdAt: new Date().toISOString(),
-      },
-    });
+    const userIds = await this.getAllUserIds();
+    for (const userId of userIds) {
+      const notif = await this.persist(userId, 'event.published', {
+        resourceId:    payload.eventId,
+        resourceType:  'event',
+        resourceTitle: payload.title,
+        message:       `Nouvel événement : "${payload.title}" — ${new Date(payload.startDate).toLocaleDateString('fr-FR')} à ${payload.location}`,
+        organizerName: payload.organizerName,
+        startDate:     payload.startDate,
+        location:      payload.location,
+      });
+      await this.pushToUser(userId, notif);
+    }
+  }
+
+  @OnEvent(`redis.${LARAVEL_CHANNELS.NOTIFICATIONS}.post.published`)
+  async onPostPublished(payload: {
+    postId: string; postTitle: string;
+    authorId: string; authorName: string;
+  }) {
+    const userIds = await this.getUserIdsByRoles(['admin', 'pedagogical']);
+    for (const userId of userIds) {
+      if (userId === payload.authorId) continue;
+      const notif = await this.persist(userId, 'post.published', {
+        resourceId:    payload.postId,
+        resourceType:  'post',
+        resourceTitle: payload.postTitle,
+        actorId:       payload.authorId,
+        actorName:     payload.authorName,
+        message:       `${payload.authorName} a publié un nouveau post : "${payload.postTitle}"`,
+      });
+      await this.pushToUser(userId, notif);
+    }
+  }
+
+  @OnEvent(`redis.${LARAVEL_CHANNELS.NOTIFICATIONS}.article.published`)
+  async onArticlePublished(payload: {
+    articleId: string; articleTitle: string;
+    authorId: string; authorName: string;
+  }) {
+    const userIds = await this.getAllUserIds();
+    for (const userId of userIds) {
+      if (userId === payload.authorId) continue;
+      const notif = await this.persist(userId, 'article.published', {
+        resourceId:    payload.articleId,
+        resourceType:  'article',
+        resourceTitle: payload.articleTitle,
+        actorId:       payload.authorId,
+        actorName:     payload.authorName,
+        message:       `Nouvel article : "${payload.articleTitle}" par ${payload.authorName}`,
+      });
+      await this.pushToUser(userId, notif);
+    }
   }
 
   @OnEvent(`redis.${LARAVEL_CHANNELS.NOTIFICATIONS}.event.attendance.confirmed`)
@@ -287,11 +351,19 @@ export class NotificationsService {
   // ── Helper ────────────────────────────────────────────────────────
  
   private toGql(doc: any) {
+    const d = doc.data ?? {};
     return {
       id:        doc._id?.toString() ?? doc.id,
       userId:    doc.userId,
       type:      doc.type,
-      data:      doc.data,
+      data: {
+        message:       d.message       ?? '',
+        actorName:     d.actorName     ?? null,
+        actorId:       d.actorId       ?? null,
+        resourceId:    d.resourceId    ?? null,
+        resourceType:  d.resourceType  ?? null,
+        resourceTitle: d.resourceTitle ?? null,
+      },
       read:      doc.read,
       readAt:    doc.readAt,
       createdAt: doc.createdAt,
