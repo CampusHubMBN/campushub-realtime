@@ -3,7 +3,7 @@ import { IsObject, IsNotEmpty } from 'class-validator';
 export class MatchCvDto {
   @IsObject()
   @IsNotEmpty()
-  cv: {
+  cv!: {
     rawText: string;
     skills: string[];
     experience: string[];

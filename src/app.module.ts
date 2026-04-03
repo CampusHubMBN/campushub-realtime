@@ -14,6 +14,7 @@ import { RedisModule } from './redis/redis.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { PresenceModule } from './presence/presence.module';
 import { CvMatchingModule } from './cv-matching/cv-matching.module';
+import { ChatModule } from './chat/chat.module';
  
 @Module({
   imports: [
@@ -86,6 +87,7 @@ import { CvMatchingModule } from './cv-matching/cv-matching.module';
     NotificationsModule,
     PresenceModule,
     CvMatchingModule,
+    ChatModule,
   ],
 })
 export class AppModule {}

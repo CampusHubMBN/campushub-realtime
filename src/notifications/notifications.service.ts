@@ -31,7 +31,7 @@ export class NotificationsService {
   private async getUserIdsByRoles(roles: string[]): Promise<string[]> {
     const placeholders = roles.map(() => '?').join(', ');
     const rows: { id: string }[] = await this.dataSource.query(
-      `SELECT id FROM users WHERE role IN (${placeholders}) AND deleted_at IS NULL`,
+      `SELECT id FROM users WHERE role IN (${placeholders})`,
       roles,
     );
     return rows.map((r) => r.id);
@@ -39,7 +39,16 @@ export class NotificationsService {
 
   private async getAllUserIds(): Promise<string[]> {
     const rows: { id: string }[] = await this.dataSource.query(
-      `SELECT id FROM users WHERE deleted_at IS NULL`,
+      `SELECT id FROM users`,
+    );
+    return rows.map((r) => r.id);
+  }
+
+  private async getUserIdsExcludingRoles(excludedRoles: string[]): Promise<string[]> {
+    const placeholders = excludedRoles.map(() => '?').join(', ');
+    const rows: { id: string }[] = await this.dataSource.query(
+      `SELECT id FROM users WHERE role NOT IN (${placeholders})`,
+      excludedRoles,
     );
     return rows.map((r) => r.id);
   }
@@ -182,19 +191,30 @@ export class NotificationsService {
 
   @OnEvent(`redis.${LARAVEL_CHANNELS.NOTIFICATIONS}.post.published`)
   async onPostPublished(payload: {
-    postId: string; postTitle: string;
+    postId: string; postTitle: string; postType: string;
     authorId: string; authorName: string;
   }) {
-    const userIds = await this.getUserIdsByRoles(['admin', 'pedagogical']);
+    const isQuestion = payload.postType === 'question';
+
+    // post   → everyone except company and pedagogical
+    // question → everyone except company (pedagogical included)
+    const excludedRoles = isQuestion ? ['company'] : ['company', 'pedagogical'];
+    const userIds = await this.getUserIdsExcludingRoles(excludedRoles);
+
+    const message = isQuestion
+      ? `${payload.authorName} a posé une nouvelle question : "${payload.postTitle}"`
+      : `${payload.authorName} a publié un nouveau post : "${payload.postTitle}"`;
+
     for (const userId of userIds) {
       if (userId === payload.authorId) continue;
       const notif = await this.persist(userId, 'post.published', {
         resourceId:    payload.postId,
         resourceType:  'post',
         resourceTitle: payload.postTitle,
+        postType:      payload.postType,
         actorId:       payload.authorId,
         actorName:     payload.authorName,
-        message:       `${payload.authorName} a publié un nouveau post : "${payload.postTitle}"`,
+        message,
       });
       await this.pushToUser(userId, notif);
     }

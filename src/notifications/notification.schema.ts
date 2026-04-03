@@ -8,12 +8,12 @@ export type NotificationDocument = HydratedDocument<NotificationMongo>;
  
 @Schema({ collection: 'notifications', timestamps: { createdAt: true, updatedAt: false }, versionKey: false })
 export class NotificationMongo {
-  @Prop({ required: true, index: true })   userId:    string;
-  @Prop({ required: true })                type:      string;
-  @Prop({ type: Object, required: true })  data:      Record<string, any>;
-  @Prop({ default: false, index: true })   read:      boolean;
-  @Prop({ type: Date, default: null })                 readAt:    Date | null;
-  @Prop({ index: { expireAfterSeconds: 0 } }) expiresAt: Date;
+  @Prop({ required: true, index: true })   userId!:    string;
+  @Prop({ required: true })                type!:      string;
+  @Prop({ type: Object, required: true })  data!:      Record<string, any>;
+  @Prop({ default: false, index: true })   read!:      boolean;
+  @Prop({ type: Date, default: null })                 readAt!:    Date | null;
+  @Prop({ index: { expireAfterSeconds: 0 } }) expiresAt!: Date;
 }
  
 export const NotificationMongoSchema = SchemaFactory.createForClass(NotificationMongo);

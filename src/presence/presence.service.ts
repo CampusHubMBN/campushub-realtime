@@ -13,7 +13,7 @@ const TTL    = 300; // 5 minutes
 @Injectable()
 export class PresenceService implements OnModuleInit {
   private readonly logger = new Logger(PresenceService.name);
-  private redis: Redis;
+  private redis!: Redis;
  
   constructor(
     private readonly config: ConfigService,

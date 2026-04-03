@@ -17,7 +17,7 @@ export const LARAVEL_CHANNELS = {
 @Injectable()
 export class RedisSubscriberService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(RedisSubscriberService.name);
-  private subscriber: Redis;
+  private subscriber!: Redis;
  
   constructor(
     private readonly config:  ConfigService,
@@ -25,12 +25,13 @@ export class RedisSubscriberService implements OnModuleInit, OnModuleDestroy {
   ) {}
  
   async onModuleInit() {
-    const host = this.config.get<string>('redis.host');
-    const port = this.config.get<number>('redis.port');
-    
-    this.logger.log(`Connecting to Redis at ${host}:${port}`); 
+    const host     = this.config.get<string>('redis.host');
+    const port     = this.config.get<number>('redis.port');
+    const password = this.config.get<string>('redis.password');
 
-    this.subscriber = new Redis({ host, port,  retryStrategy: (t) => Math.min(t * 100, 3000), });
+    this.logger.log(`Connecting to Redis at ${host}:${port}`);
+
+    this.subscriber = new Redis({ host, port, password, retryStrategy: (t) => Math.min(t * 100, 3000) });
 
     // this.subscriber = new Redis({
     //   host: this.config.get<string>('redis.host'),

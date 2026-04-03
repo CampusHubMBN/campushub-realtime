@@ -16,9 +16,11 @@ export const LARAVEL_CHANNELS = {
 
 // Events GraphQL subscription
 export const SUBSCRIPTION_EVENTS = {
-  NOTIFICATION_ADDED:   'notificationAdded',
-  PRESENCE_UPDATED:     'presenceUpdated',
-  UNREAD_COUNT_UPDATED: 'unreadCountUpdated',
+  NOTIFICATION_ADDED:        'notificationAdded',
+  PRESENCE_UPDATED:          'presenceUpdated',
+  UNREAD_COUNT_UPDATED:      'unreadCountUpdated',
+  CHAT_MESSAGE_ADDED:        'chatMessageAdded',
+  CHAT_CONVERSATION_UPDATED: 'chatConversationUpdated',
 } as const;
 
 // Factory pour créer le RedisPubSub
