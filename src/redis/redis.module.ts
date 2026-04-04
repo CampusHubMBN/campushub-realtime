@@ -31,7 +31,7 @@ import { RedisSubscriberService } from './redis-subscriber.service';
         new Redis({
           host:     config.get<string>('redis.host'),
           port:     config.get<number>('redis.port'),
-          password: config.get<string>('redis.password'),
+          password: config.get<string>('redis.password') || process.env.REDIS_PASSWORD || undefined,
           retryStrategy: (t) => Math.min(t * 100, 3000),
         }),
     },

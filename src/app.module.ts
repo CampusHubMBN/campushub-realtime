@@ -40,12 +40,10 @@ import { ChatModule } from './chat/chat.module';
             path: '/graphql',
             onConnect: async (context: any) => {
               const { connectionParams, extra } = context;
-              // Prefer cookie from the HTTP upgrade request headers (includes HttpOnly cookies)
-              // Fallback to connectionParams for non-proxied setups
-              extra.cookieHeader =
-                extra?.request?.headers?.cookie ||
-                connectionParams?.cookie ||
-                '';
+              // TOKEN AUTH: store connectionParams so GqlAuthGuard can read the Bearer token
+              extra.connectionParams = connectionParams || {};
+              // SESSION AUTH (SPA same-domain only):
+              // extra.cookieHeader = extra?.request?.headers?.cookie || connectionParams?.cookie || '';
             },
           },
         },
@@ -53,7 +51,10 @@ import { ChatModule } from './chat/chat.module';
         context: ({ req, res, extra }: { req: any, res: any, extra?: any }) => ({
           req,
           res,
-          ...(extra && { cookieHeader: extra.cookieHeader }),
+          // TOKEN AUTH: pass connectionParams for WS Bearer token
+          ...(extra && { connectionParams: extra.connectionParams }),
+          // SESSION AUTH:
+          // ...(extra && { cookieHeader: extra.cookieHeader }),
         }),
       }),
       inject: [ConfigService],

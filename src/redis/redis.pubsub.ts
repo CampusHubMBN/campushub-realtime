@@ -28,7 +28,7 @@ export function createRedisPubSub(host: string, port: number, password?: string)
   const options = {
     host,
     port,
-    password,
+    password: password || process.env.REDIS_PASSWORD || undefined,
     retryStrategy: (times: number) => Math.min(times * 100, 3000),
   };
 
