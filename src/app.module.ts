@@ -29,7 +29,9 @@ import { ChatModule } from './chat/chat.module';
       driver: ApolloDriver,
       imports: [ConfigModule],
       useFactory: (config: ConfigService) => ({
-        autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
+        autoSchemaFile: process.env.NODE_ENV === 'production'
+          ? true
+          : join(process.cwd(), 'src/schema.gql'),
         sortSchema:     true,
         playground:     true,
         // Subscriptions via graphql-ws (protocol moderne)

@@ -1,15 +1,30 @@
 // =====================================================================
 // src/config/configuration.ts
 // =====================================================================
-export default () => ({
-  port:     parseInt(process.env.PORT || '3001', 10),
-  frontend: process.env.FRONTEND_URL || 'http://localhost:3000',
- 
-  redis: {
+
+// Parse REDIS_URL (provided by Railway/Render) or fall back to separate vars.
+function parseRedis() {
+  const url = process.env.REDIS_URL;
+  if (url) {
+    const parsed = new URL(url);
+    return {
+      host:     parsed.hostname,
+      port:     parseInt(parsed.port || '6379', 10),
+      password: parsed.password || undefined,
+    };
+  }
+  return {
     host:     process.env.REDIS_HOST || 'localhost',
     port:     parseInt(process.env.REDIS_PORT || '6379', 10),
     password: process.env.REDIS_PASSWORD || undefined,
-  },
+  };
+}
+
+export default () => ({
+  port:     parseInt(process.env.PORT || '3001', 10),
+  frontend: process.env.FRONTEND_URL || 'http://localhost:3000',
+
+  redis: parseRedis(),
  
   mongodb: {
     uri: process.env.MONGODB_URI || 'mongodb://localhost:27017/campushub_realtime',
