@@ -2,6 +2,32 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
+type ChatConversation {
+  createdAt: DateTime!
+  id: ID!
+  lastMessageAt: DateTime
+  lastMessageContent: String
+  lastMessageSenderId: String
+  otherParticipant: ChatParticipant!
+  unreadCount: Int!
+}
+
+type ChatMessage {
+  content: String!
+  conversationId: String!
+  createdAt: DateTime!
+  id: ID!
+  isOwn: Boolean!
+  readAt: DateTime
+  senderId: String!
+}
+
+type ChatParticipant {
+  avatarUrl: String
+  id: ID!
+  name: String!
+}
+
 """
 A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
 """
@@ -11,13 +37,22 @@ input MarkReadInput {
   ids: [String!]
 }
 
+type MessagesPage {
+  hasMore: Boolean!
+  messages: [ChatMessage!]!
+  total: Int!
+}
+
 type Mutation {
   heartbeat: Boolean!
+  markConversationRead(conversationId: String!): Boolean!
 
   """Marquer des notifications comme lues. ids=null → tout marquer."""
   markNotificationsRead(input: MarkReadInput!): Int!
+  sendMessage(input: SendMessageInput!): ChatMessage!
   setOffline: Boolean!
   setOnline: Boolean!
+  startConversation(otherUserId: String!): ChatConversation!
 }
 
 type Notification {
@@ -53,13 +88,22 @@ type PresenceUpdate {
 
 type Query {
   isUserOnline(userId: String!): Boolean!
+  messages(conversationId: String!, page: Int! = 1): MessagesPage!
+  myConversations: [ChatConversation!]!
   myNotifications(page: Int! = 1, unreadOnly: Boolean! = false): NotificationsPage!
   onlineUsers: [String!]!
   unreadCount: Int!
 }
 
+input SendMessageInput {
+  content: String!
+  conversationId: String!
+}
+
 type Subscription {
   adminNotification: String!
+  chatConversationUpdated: ChatConversation!
+  chatMessageAdded: ChatMessage!
   notificationAdded: Notification!
   presenceUpdated: PresenceUpdate!
   unreadCountUpdated: UnreadCountUpdate!

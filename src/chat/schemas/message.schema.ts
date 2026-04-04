@@ -21,8 +21,11 @@ export class MessageMongo {
   @Prop({ required: true, maxlength: 2000 })
   content!: string;
 
-  @Prop({ default: null })
+  @Prop({ type: Date, default: null })
   readAt!: Date | null;
+
+  @Prop({ type: Date, default: null })
+  createdAt!: Date | null;
 }
 
 export const MessageSchema = SchemaFactory.createForClass(MessageMongo);

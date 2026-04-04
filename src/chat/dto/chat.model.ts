@@ -13,7 +13,7 @@ export class ChatParticipant {
   @Field()
   name!: string;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   avatarUrl?: string | null;
 }
 
@@ -32,7 +32,7 @@ export class ChatMessage {
   @Field()
   content!: string;
 
-  @Field({ nullable: true })
+  @Field(() => Date, { nullable: true })
   readAt?: Date | null;
 
   /** True when senderId === requesting user */
@@ -52,13 +52,13 @@ export class ChatConversation {
   @Field(() => ChatParticipant)
   otherParticipant!: ChatParticipant;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   lastMessageContent?: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => String, { nullable: true })
   lastMessageSenderId?: string | null;
 
-  @Field({ nullable: true })
+  @Field(() => Date, { nullable: true })
   lastMessageAt?: Date | null;
 
   /** Unread count for the requesting user */

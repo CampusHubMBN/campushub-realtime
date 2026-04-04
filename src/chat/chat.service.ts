@@ -44,7 +44,7 @@ export class ChatService {
       await this.dataSource.query(
         `SELECT u.id, u.name, ui.avatar_url
          FROM users u
-         LEFT JOIN user_infos ui ON ui.user_id = u.id
+         LEFT JOIN user_info ui ON ui.user_id = u.id
          WHERE u.id IN (${placeholders})`,
         ids,
       );
@@ -72,12 +72,13 @@ export class ChatService {
     const [otherUser] = await this.getUsersInfo([otherUserId]);
     if (!otherUser) throw new NotFoundException('Utilisateur introuvable');
 
-    const participants = [userId, otherUserId].sort();
+    const participants   = [userId, otherUserId].sort();
+    const participantKey = participants.join('_');
 
     const conv = await this.convModel.findOneAndUpdate(
-      { participants },
-      { $setOnInsert: { participants, unreadCounts: {} } },
-      { upsert: true, new: true },
+      { participantKey },
+      { $setOnInsert: { participants, participantKey, unreadCounts: {} } },
+      { upsert: true, returnDocument: 'after' },
     ).lean();
 
     return this.toConvGql(conv!, userId, new Map([[otherUserId, otherUser]]));

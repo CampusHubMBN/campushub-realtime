@@ -16,13 +16,22 @@ export class ConversationMongo {
   @Prop({ type: [String], required: true })
   participants!: string[];
 
-  @Prop({ default: null })
+  /**
+   * Canonical uniqueness key: sorted IDs joined with '_'.
+   * Used for the unique index instead of the array field,
+   * because a unique index on an array field (multikey) indexes
+   * each element separately — causing false duplicate errors.
+   */
+  @Prop({ type: String, required: true })
+  participantKey!: string;
+
+  @Prop({ type: String, default: null })
   lastMessageContent!: string | null;
 
-  @Prop({ default: null })
+  @Prop({ type: String, default: null })
   lastMessageSenderId!: string | null;
 
-  @Prop({ default: null })
+  @Prop({ type: Date, default: null })
   lastMessageAt!: Date | null;
 
   /** { [userId]: unreadCount } */
@@ -32,5 +41,5 @@ export class ConversationMongo {
 
 export const ConversationSchema = SchemaFactory.createForClass(ConversationMongo);
 
-ConversationSchema.index({ participants: 1 }, { unique: true });
+ConversationSchema.index({ participantKey: 1 }, { unique: true });
 ConversationSchema.index({ participants: 1, lastMessageAt: -1 });

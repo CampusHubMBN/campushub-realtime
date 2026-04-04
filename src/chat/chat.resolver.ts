@@ -1,8 +1,8 @@
 // =====================================================================
 // src/chat/chat.resolver.ts
 // =====================================================================
-import { Resolver, Query, Mutation, Subscription, Args, Int, Inject } from '@nestjs/graphql';
-import { UseGuards } from '@nestjs/common';
+import { Resolver, Query, Mutation, Subscription, Args, Int } from '@nestjs/graphql';
+import { Inject, UseGuards } from '@nestjs/common';
 import { RedisPubSub } from 'graphql-redis-subscriptions';
 import { GqlAuthGuard } from '../common/guards/gql-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
