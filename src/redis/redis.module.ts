@@ -14,26 +14,25 @@ import { RedisSubscriberService } from './redis-subscriber.service';
     // PubSub pour les subscriptions GraphQL
     {
       provide:  REDIS_PUBSUB,
-      inject:   [ConfigService],
-      useFactory: (config: ConfigService): RedisPubSub =>
-        createRedisPubSub(
-          config.get<string>('redis.host')!,
-          config.get<number>('redis.port')!,
-          config.get<string>('redis.password'),
-        ),
+      useFactory: (): RedisPubSub => {
+        const host     = process.env.REDIS_HOST || 'localhost';
+        const port     = parseInt(process.env.REDIS_PORT || '6379', 10);
+        const password = process.env.REDIS_PASSWORD || undefined;
+        console.log(`[RedisModule] PubSub → ${host}:${port} password=${password ? 'SET' : 'NOT SET'}`);
+        return createRedisPubSub(host, port, password);
+      },
     },
 
     // Publisher Redis séparé — pour recevoir les events de Laravel
     {
       provide:  REDIS_PUBLISHER,
-      inject:   [ConfigService],
-      useFactory: (config: ConfigService) =>
-        new Redis({
-          host:     config.get<string>('redis.host'),
-          port:     config.get<number>('redis.port'),
-          password: config.get<string>('redis.password') || process.env.REDIS_PASSWORD || undefined,
-          retryStrategy: (t) => Math.min(t * 100, 3000),
-        }),
+      useFactory: () => {
+        const host     = process.env.REDIS_HOST || 'localhost';
+        const port     = parseInt(process.env.REDIS_PORT || '6379', 10);
+        const password = process.env.REDIS_PASSWORD || undefined;
+        console.log(`[RedisModule] Publisher → ${host}:${port} password=${password ? 'SET' : 'NOT SET'}`);
+        return new Redis({ host, port, password, retryStrategy: (t) => Math.min(t * 100, 3000) });
+      },
     },
 
     RedisSubscriberService,

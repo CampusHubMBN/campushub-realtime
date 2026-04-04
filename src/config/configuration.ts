@@ -4,11 +4,11 @@
 
 // Always use separate vars — REDIS_URL may be injected by Railway without password
 function parseRedis() {
-  return {
-    host:     process.env.REDIS_HOST || 'localhost',
-    port:     parseInt(process.env.REDIS_PORT || '6379', 10),
-    password: process.env.REDIS_PASSWORD || undefined,
-  };
+  const host     = process.env.REDIS_HOST || 'localhost';
+  const port     = parseInt(process.env.REDIS_PORT || '6379', 10);
+  const password = process.env.REDIS_PASSWORD || undefined;
+  console.log(`[parseRedis] host=${host} port=${port} password=${password ? 'SET' : 'NOT SET'}`);
+  return { host, port, password };
 }
 
 // REDIS_URL path (SPA / Render style) — kept for reference
