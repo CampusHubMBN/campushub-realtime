@@ -24,8 +24,9 @@ export class MessageMongo {
   @Prop({ type: Date, default: null })
   readAt!: Date | null;
 
-  @Prop({ type: Date, default: null })
-  createdAt!: Date | null;
+  // Managed automatically by Mongoose timestamps — no @Prop needed.
+  // Declaring @Prop with default: null would override the auto-set value.
+  createdAt!: Date;
 }
 
 export const MessageSchema = SchemaFactory.createForClass(MessageMongo);

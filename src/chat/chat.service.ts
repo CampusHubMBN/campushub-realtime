@@ -178,12 +178,15 @@ export class ChatService {
 
     const msgGql = this.toMsgGql(message.toObject(), senderId);
 
-    // Subscription: new message (both participants receive it)
-    await this.pubSub.publish(SUBSCRIPTION_EVENTS.CHAT_MESSAGE_ADDED, {
-      [SUBSCRIPTION_EVENTS.CHAT_MESSAGE_ADDED]: msgGql,
-      conversationId,
-      participantIds: conv.participants,
-    });
+    // Publish one event per participant — mirrors the notification pattern.
+    // Simple userId equality in the filter is more reliable than array.includes()
+    // after Redis serialization/deserialization.
+    for (const participantId of conv.participants) {
+      await this.pubSub.publish(SUBSCRIPTION_EVENTS.CHAT_MESSAGE_ADDED, {
+        [SUBSCRIPTION_EVENTS.CHAT_MESSAGE_ADDED]: msgGql,
+        userId: participantId,
+      });
+    }
 
     // Subscription: conversation updated (one event per participant, personalized)
     await this._publishConversationUpdated(conversationId, senderId, recipientId);

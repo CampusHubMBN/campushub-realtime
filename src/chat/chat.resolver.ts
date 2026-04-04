@@ -80,8 +80,7 @@ export class ChatResolver {
    * Fires for every new message in any conversation the user participates in.
    */
   @Subscription(() => ChatMessage, {
-    filter: (payload, _vars, context) =>
-      payload.participantIds?.includes(context.userId),
+    filter:  (payload, _vars, context) => payload.userId === context.userId,
     resolve: (payload) => payload[SUBSCRIPTION_EVENTS.CHAT_MESSAGE_ADDED],
   })
   @UseGuards(GqlAuthGuard)
