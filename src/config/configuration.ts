@@ -2,23 +2,24 @@
 // src/config/configuration.ts
 // =====================================================================
 
-// Parse REDIS_URL (provided by Railway/Render) or fall back to separate vars.
+// Always use separate vars — REDIS_URL may be injected by Railway without password
 function parseRedis() {
-  const url = process.env.REDIS_URL;
-  if (url) {
-    const parsed = new URL(url);
-    return {
-      host:     parsed.hostname,
-      port:     parseInt(parsed.port || '6379', 10),
-      password: parsed.password || undefined,
-    };
-  }
   return {
     host:     process.env.REDIS_HOST || 'localhost',
     port:     parseInt(process.env.REDIS_PORT || '6379', 10),
     password: process.env.REDIS_PASSWORD || undefined,
   };
 }
+
+// REDIS_URL path (SPA / Render style) — kept for reference
+// function parseRedis() {
+//   const url = process.env.REDIS_URL;
+//   if (url) {
+//     const parsed = new URL(url);
+//     return { host: parsed.hostname, port: parseInt(parsed.port || '6379', 10), password: parsed.password || undefined };
+//   }
+//   return { host: process.env.REDIS_HOST || 'localhost', port: parseInt(process.env.REDIS_PORT || '6379', 10), password: process.env.REDIS_PASSWORD || undefined };
+// }
 
 export default () => ({
   port:     parseInt(process.env.PORT || '3001', 10),
