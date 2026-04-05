@@ -5,10 +5,10 @@
 // Écoute les events publiés par Laravel et les convertit
 // en events NestJS internes via EventEmitter2
 // =====================================================================
-import { Injectable, OnModuleInit, OnModuleDestroy, Logger, Inject } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import Redis from 'ioredis';
+import { buildRedisUrl } from '../config/configuration';
  
 export const LARAVEL_CHANNELS = {
   NOTIFICATIONS: 'campushub:notifications',
@@ -20,20 +20,12 @@ export class RedisSubscriberService implements OnModuleInit, OnModuleDestroy {
   private subscriber!: Redis;
  
   constructor(
-    private readonly config:  ConfigService,
     private readonly emitter: EventEmitter2,
   ) {}
- 
+
   async onModuleInit() {
-    const host     = process.env.REDIS_HOST || 'localhost';
-    const port     = parseInt(process.env.REDIS_PORT || '6379', 10);
-    const password = process.env.REDIS_PASSWORD || '';
-    const url = password
-      ? `redis://:${encodeURIComponent(password)}@${host}:${port}`
-      : `redis://${host}:${port}`;
-
-    this.logger.log(`Connecting to Redis at ${host}:${port} password=${password ? 'SET' : 'NOT SET'}`);
-
+    const url = buildRedisUrl();
+    this.logger.log(`Connecting via URL (${url.substring(0, 15)}...)`);
     this.subscriber = new Redis(url, { retryStrategy: (t) => Math.min(t * 100, 3000) });
  
     this.subscriber.on('error', (err) =>

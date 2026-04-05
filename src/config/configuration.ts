@@ -2,12 +2,40 @@
 // src/config/configuration.ts
 // =====================================================================
 
-// Always use separate vars — REDIS_URL may be injected by Railway without password
+// Build the Redis URL from environment variables.
+// Priority: REDIS_URL (auto-injected by Railway with full credentials) > manual vars.
+export function buildRedisUrl(): string {
+  const railwayUrl = process.env.REDIS_URL;
+
+  // Log all available Redis env vars to diagnose Railway injection
+  console.log('[Redis env]', {
+    REDIS_URL:      railwayUrl ? `${railwayUrl.substring(0, 15)}... (length=${railwayUrl.length})` : 'NOT SET',
+    REDIS_HOST:     process.env.REDIS_HOST || 'NOT SET',
+    REDIS_PORT:     process.env.REDIS_PORT || 'NOT SET',
+    REDIS_PASSWORD: process.env.REDIS_PASSWORD
+      ? `SET (length=${process.env.REDIS_PASSWORD.length}, first=${process.env.REDIS_PASSWORD[0]})`
+      : 'NOT SET',
+  });
+
+  if (railwayUrl) {
+    console.log('[Redis] Using REDIS_URL (Railway-injected)');
+    return railwayUrl;
+  }
+
+  const host     = process.env.REDIS_HOST || 'localhost';
+  const port     = process.env.REDIS_PORT || '6379';
+  const password = process.env.REDIS_PASSWORD || '';
+  console.log(`[Redis] Manual config → ${host}:${port} password=${password ? 'SET' : 'NOT SET'}`);
+
+  return password
+    ? `redis://default:${encodeURIComponent(password)}@${host}:${port}`
+    : `redis://${host}:${port}`;
+}
+
 function parseRedis() {
   const host     = process.env.REDIS_HOST || 'localhost';
   const port     = parseInt(process.env.REDIS_PORT || '6379', 10);
   const password = process.env.REDIS_PASSWORD || undefined;
-  console.log(`[parseRedis] host=${host} port=${port} password=${password ? 'SET' : 'NOT SET'}`);
   return { host, port, password };
 }
 

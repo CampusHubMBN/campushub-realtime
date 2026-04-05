@@ -7,6 +7,7 @@ import { RedisPubSub } from 'graphql-redis-subscriptions';
 import Redis from 'ioredis';
 import { REDIS_PUBSUB, REDIS_PUBLISHER, createRedisPubSub } from './redis.pubsub';
 import { RedisSubscriberService } from './redis-subscriber.service';
+import { buildRedisUrl } from '../config/configuration';
 
 @Global()
 @Module({
@@ -15,11 +16,7 @@ import { RedisSubscriberService } from './redis-subscriber.service';
     {
       provide:  REDIS_PUBSUB,
       useFactory: (): RedisPubSub => {
-        const host     = process.env.REDIS_HOST || 'localhost';
-        const port     = parseInt(process.env.REDIS_PORT || '6379', 10);
-        const password = process.env.REDIS_PASSWORD || undefined;
-        console.log(`[RedisModule] PubSub → ${host}:${port} password=${password ? 'SET' : 'NOT SET'}`);
-        return createRedisPubSub(host, port, password);
+        return createRedisPubSub();
       },
     },
 
@@ -27,13 +24,8 @@ import { RedisSubscriberService } from './redis-subscriber.service';
     {
       provide:  REDIS_PUBLISHER,
       useFactory: () => {
-        const host     = process.env.REDIS_HOST || 'localhost';
-        const port     = parseInt(process.env.REDIS_PORT || '6379', 10);
-        const password = process.env.REDIS_PASSWORD || '';
-        const url = password
-          ? `redis://:${encodeURIComponent(password)}@${host}:${port}`
-          : `redis://${host}:${port}`;
-        console.log(`[RedisModule] Publisher → ${host}:${port} password=${password ? 'SET' : 'NOT SET'}`);
+        const url = buildRedisUrl();
+        console.log(`[RedisModule] Publisher → ${url.substring(0, 15)}...`);
         return new Redis(url, { retryStrategy: (t) => Math.min(t * 100, 3000) });
       },
     },
