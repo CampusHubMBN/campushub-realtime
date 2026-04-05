@@ -2,34 +2,44 @@
 // src/config/configuration.ts
 // =====================================================================
 
-// Build the Redis URL from environment variables.
-// Priority: REDIS_URL (auto-injected by Railway with full credentials) > manual vars.
-export function buildRedisUrl(): string {
+export interface RedisConnectionOptions {
+  host:      string;
+  port:      number;
+  password?: string;
+}
+
+/**
+ * Returns explicit ioredis connection options (host/port/password).
+ * Avoids passing a URL string to ioredis because some versions fail to
+ * send AUTH when a second options argument is also provided alongside the URL.
+ *
+ * Priority: REDIS_URL (Railway-injected, contains correct credentials) > manual env vars.
+ */
+export function getRedisOptions(): RedisConnectionOptions {
   const railwayUrl = process.env.REDIS_URL;
 
-  // Log all available Redis env vars to diagnose Railway injection
-  console.log('[Redis env]', {
-    REDIS_URL:      railwayUrl ? `${railwayUrl.substring(0, 15)}... (length=${railwayUrl.length})` : 'NOT SET',
-    REDIS_HOST:     process.env.REDIS_HOST || 'NOT SET',
-    REDIS_PORT:     process.env.REDIS_PORT || 'NOT SET',
-    REDIS_PASSWORD: process.env.REDIS_PASSWORD
-      ? `SET (length=${process.env.REDIS_PASSWORD.length}, first=${process.env.REDIS_PASSWORD[0]})`
-      : 'NOT SET',
-  });
-
   if (railwayUrl) {
-    console.log('[Redis] Using REDIS_URL (Railway-injected)');
-    return railwayUrl;
+    try {
+      const parsed = new URL(railwayUrl);
+      const opts: RedisConnectionOptions = {
+        host: parsed.hostname,
+        port: parseInt(parsed.port || '6379', 10),
+      };
+      if (parsed.password) {
+        opts.password = decodeURIComponent(parsed.password);
+      }
+      console.log(`[Redis] REDIS_URL parsed → ${opts.host}:${opts.port} password=${opts.password ? 'SET' : 'NOT SET'}`);
+      return opts;
+    } catch (e) {
+      console.error('[Redis] Failed to parse REDIS_URL, falling back to manual vars', e);
+    }
   }
 
   const host     = process.env.REDIS_HOST || 'localhost';
-  const port     = process.env.REDIS_PORT || '6379';
-  const password = process.env.REDIS_PASSWORD || '';
+  const port     = parseInt(process.env.REDIS_PORT || '6379', 10);
+  const password = process.env.REDIS_PASSWORD || undefined;
   console.log(`[Redis] Manual config → ${host}:${port} password=${password ? 'SET' : 'NOT SET'}`);
-
-  return password
-    ? `redis://default:${encodeURIComponent(password)}@${host}:${port}`
-    : `redis://${host}:${port}`;
+  return { host, port, password };
 }
 
 function parseRedis() {

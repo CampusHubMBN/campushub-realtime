@@ -6,7 +6,7 @@
 // =====================================================================
 import { RedisPubSub } from 'graphql-redis-subscriptions';
 import Redis from 'ioredis';
-import { buildRedisUrl } from '../config/configuration';
+import { getRedisOptions } from '../config/configuration';
 
 // Tokens d'injection
 export const REDIS_PUBSUB   = 'REDIS_PUBSUB';
@@ -26,14 +26,15 @@ export const SUBSCRIPTION_EVENTS = {
 
 // Factory pour créer le RedisPubSub
 export function createRedisPubSub(): RedisPubSub {
-  const url = buildRedisUrl();
+  const opts = getRedisOptions();
 
-  console.log(`[createRedisPubSub] connecting via URL (${url.substring(0, 15)}...)`);
-
-  const redisOptions = { retryStrategy: (times: number) => Math.min(times * 100, 3000) };
+  const redisOptions = {
+    ...opts,
+    retryStrategy: (times: number) => Math.min(times * 100, 3000),
+  };
 
   return new RedisPubSub({
-    publisher:  new Redis(url, redisOptions),
-    subscriber: new Redis(url, redisOptions),
+    publisher:  new Redis(redisOptions),
+    subscriber: new Redis(redisOptions),
   });
 }

@@ -8,7 +8,7 @@
 import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import Redis from 'ioredis';
-import { buildRedisUrl } from '../config/configuration';
+import { getRedisOptions } from '../config/configuration';
  
 export const LARAVEL_CHANNELS = {
   NOTIFICATIONS: 'campushub:notifications',
@@ -24,9 +24,9 @@ export class RedisSubscriberService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   async onModuleInit() {
-    const url = buildRedisUrl();
-    this.logger.log(`Connecting via URL (${url.substring(0, 15)}...)`);
-    this.subscriber = new Redis(url, { retryStrategy: (t) => Math.min(t * 100, 3000) });
+    const opts = getRedisOptions();
+    this.logger.log(`Connecting to Redis at ${opts.host}:${opts.port} password=${opts.password ? 'SET' : 'NOT SET'}`);
+    this.subscriber = new Redis({ ...opts, retryStrategy: (t) => Math.min(t * 100, 3000) });
  
     this.subscriber.on('error', (err) =>
       this.logger.error('Redis subscriber error', err),

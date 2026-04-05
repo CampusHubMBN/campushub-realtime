@@ -7,7 +7,7 @@ import { RedisPubSub } from 'graphql-redis-subscriptions';
 import Redis from 'ioredis';
 import { REDIS_PUBSUB, REDIS_PUBLISHER, createRedisPubSub } from './redis.pubsub';
 import { RedisSubscriberService } from './redis-subscriber.service';
-import { buildRedisUrl } from '../config/configuration';
+import { getRedisOptions } from '../config/configuration';
 
 @Global()
 @Module({
@@ -24,9 +24,8 @@ import { buildRedisUrl } from '../config/configuration';
     {
       provide:  REDIS_PUBLISHER,
       useFactory: () => {
-        const url = buildRedisUrl();
-        console.log(`[RedisModule] Publisher → ${url.substring(0, 15)}...`);
-        return new Redis(url, { retryStrategy: (t) => Math.min(t * 100, 3000) });
+        const opts = getRedisOptions();
+        return new Redis({ ...opts, retryStrategy: (t) => Math.min(t * 100, 3000) });
       },
     },
 
