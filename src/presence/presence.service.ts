@@ -2,10 +2,10 @@
 // src/presence/presence.service.ts
 // =====================================================================
 import { Injectable, OnModuleInit, Inject, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { RedisPubSub } from 'graphql-redis-subscriptions';
 import Redis from 'ioredis';
 import { REDIS_PUBSUB, SUBSCRIPTION_EVENTS } from '../redis/redis.pubsub';
+import { getRedisOptions } from '../config/configuration';
  
 const PREFIX = 'campushub:presence:';
 const TTL    = 300; // 5 minutes
@@ -16,16 +16,13 @@ export class PresenceService implements OnModuleInit {
   private redis!: Redis;
  
   constructor(
-    private readonly config: ConfigService,
     @Inject(REDIS_PUBSUB) private readonly pubSub: RedisPubSub,
   ) {}
- 
+
   onModuleInit() {
-    this.redis = new Redis({
-      host: this.config.get<string>('redis.host'),
-      port: this.config.get<number>('redis.port'),
-      retryStrategy: (t) => Math.min(t * 100, 3000),
-    });
+    const opts = getRedisOptions();
+    this.redis = new Redis({ ...opts, retryStrategy: (t) => Math.min(t * 100, 3000) });
+    this.redis.on('error', (err) => this.logger.error('Presence Redis error', err));
     this.logger.log('Presence service ready');
   }
  
