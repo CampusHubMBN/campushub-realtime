@@ -29,9 +29,12 @@ import { RedisSubscriberService } from './redis-subscriber.service';
       useFactory: () => {
         const host     = process.env.REDIS_HOST || 'localhost';
         const port     = parseInt(process.env.REDIS_PORT || '6379', 10);
-        const password = process.env.REDIS_PASSWORD || undefined;
+        const password = process.env.REDIS_PASSWORD || '';
+        const url = password
+          ? `redis://:${encodeURIComponent(password)}@${host}:${port}`
+          : `redis://${host}:${port}`;
         console.log(`[RedisModule] Publisher → ${host}:${port} password=${password ? 'SET' : 'NOT SET'}`);
-        return new Redis({ host, port, password, retryStrategy: (t) => Math.min(t * 100, 3000) });
+        return new Redis(url, { retryStrategy: (t) => Math.min(t * 100, 3000) });
       },
     },
 

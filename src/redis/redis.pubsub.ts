@@ -25,15 +25,18 @@ export const SUBSCRIPTION_EVENTS = {
 
 // Factory pour créer le RedisPubSub
 export function createRedisPubSub(host: string, port: number, password?: string): RedisPubSub {
-  const options = {
-    host,
-    port,
-    password: password || process.env.REDIS_PASSWORD || undefined,
-    retryStrategy: (times: number) => Math.min(times * 100, 3000),
-  };
+  const pwd = password || process.env.REDIS_PASSWORD || '';
+  // Use URL format — more reliable than options object for auth with ioredis
+  const url = pwd
+    ? `redis://:${encodeURIComponent(pwd)}@${host}:${port}`
+    : `redis://${host}:${port}`;
+
+  console.log(`[createRedisPubSub] ${host}:${port} password=${pwd ? 'SET' : 'NOT SET'}`);
+
+  const redisOptions = { retryStrategy: (times: number) => Math.min(times * 100, 3000) };
 
   return new RedisPubSub({
-    publisher:  new Redis(options),
-    subscriber: new Redis(options),
+    publisher:  new Redis(url, redisOptions),
+    subscriber: new Redis(url, redisOptions),
   });
 }

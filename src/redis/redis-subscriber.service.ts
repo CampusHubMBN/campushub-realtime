@@ -25,19 +25,16 @@ export class RedisSubscriberService implements OnModuleInit, OnModuleDestroy {
   ) {}
  
   async onModuleInit() {
-    const host     = this.config.get<string>('redis.host');
-    const port     = this.config.get<number>('redis.port');
-    const password = this.config.get<string>('redis.password');
+    const host     = process.env.REDIS_HOST || 'localhost';
+    const port     = parseInt(process.env.REDIS_PORT || '6379', 10);
+    const password = process.env.REDIS_PASSWORD || '';
+    const url = password
+      ? `redis://:${encodeURIComponent(password)}@${host}:${port}`
+      : `redis://${host}:${port}`;
 
-    this.logger.log(`Connecting to Redis at ${host}:${port}`);
+    this.logger.log(`Connecting to Redis at ${host}:${port} password=${password ? 'SET' : 'NOT SET'}`);
 
-    this.subscriber = new Redis({ host, port, password, retryStrategy: (t) => Math.min(t * 100, 3000) });
-
-    // this.subscriber = new Redis({
-    //   host: this.config.get<string>('redis.host'),
-    //   port: this.config.get<number>('redis.port'),
-    //   retryStrategy: (t) => Math.min(t * 100, 3000),
-    // });
+    this.subscriber = new Redis(url, { retryStrategy: (t) => Math.min(t * 100, 3000) });
  
     this.subscriber.on('error', (err) =>
       this.logger.error('Redis subscriber error', err),
