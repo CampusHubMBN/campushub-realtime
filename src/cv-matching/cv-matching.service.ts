@@ -41,6 +41,7 @@ export class CvMatchingService {
   // ── Matching TF-IDF contre les offres CampusHub ────────────────────────────
   async matchCV(cv: Partial<CVData>): Promise<MatchResult[]> {
     const jobs = await this.fetchCampusHubJobs();
+    if (jobs.length === 0) return [];
 
     const cvData: CVData = {
       id:         'temp-' + Date.now(),
@@ -80,7 +81,7 @@ export class CvMatchingService {
     const published = jobs.filter((job) => job.status === 'published' && job.is_active);
 
     if (published.length === 0) {
-      throw new NotFoundException('Aucune offre publiée disponible pour le matching.');
+      return [];
     }
 
     return published.map((job): JobOffer => {
