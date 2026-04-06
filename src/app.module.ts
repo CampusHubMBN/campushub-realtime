@@ -34,6 +34,7 @@ import { ChatModule } from './chat/chat.module';
           : join(process.cwd(), 'src/schema.gql'),
         sortSchema:     true,
         playground:     true,
+        introspection:  true,
         // Subscriptions via graphql-ws (protocol moderne)
         subscriptions: {
           'graphql-ws': {
